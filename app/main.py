@@ -10,8 +10,10 @@ from app.models import (
     product,
     product_variant,
     stock,
+    user,
 )
 from app.routers import (
+    auth,
     categories,
     customers,
     invoices,
@@ -21,6 +23,7 @@ from app.routers import (
     products,
     reports,
     stock as stock_router,
+    users,
 )
 
 Base.metadata.create_all(bind=engine)
@@ -30,6 +33,9 @@ app = FastAPI(
     description="Backend API for fashion store inventory, sales, orders, payments and reports.",
     version="1.0.0"
 )
+
+app.include_router(auth.router)
+app.include_router(users.router)
 
 app.include_router(categories.router)
 app.include_router(products.router)
