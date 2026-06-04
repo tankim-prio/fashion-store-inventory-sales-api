@@ -19,6 +19,7 @@ from app.routers import (
     payments,
     product_variants,
     products,
+    reports,
     stock as stock_router,
 )
 
@@ -38,6 +39,7 @@ app.include_router(customers.router)
 app.include_router(orders.router)
 app.include_router(payments.router)
 app.include_router(invoices.router)
+app.include_router(reports.router)
 
 
 @app.get("/")
