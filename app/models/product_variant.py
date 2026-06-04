@@ -26,3 +26,4 @@ class ProductVariant(Base):
 
     product = relationship("Product", back_populates="variants")
     stock_history = relationship("StockHistory", back_populates="variant")
+    order_items = relationship("OrderItem", back_populates="variant")
