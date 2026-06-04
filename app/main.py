@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 
 from app.database import Base, engine
-from app.models import category, product
-from app.routers import categories, products
+from app.models import category, product, product_variant
+from app.routers import categories, product_variants, products
 
 Base.metadata.create_all(bind=engine)
 
@@ -14,6 +14,7 @@ app = FastAPI(
 
 app.include_router(categories.router)
 app.include_router(products.router)
+app.include_router(product_variants.router)
 
 
 @app.get("/")
