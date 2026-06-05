@@ -1365,3 +1365,238 @@ async function deleteCustomer(id) {
         showMessage(error.message, "error");
     }
 }
+
+async function loadStockPage() {
+    setPage("Stock Management", "Add stock, remove stock, view stock history and check low-stock products.");
+
+    setContent(`
+        <div class="content-box">
+            <h2>Current Variant Stock</h2>
+            <button class="small-btn" onclick="refreshVariantStockTable()">Refresh Stock</button>
+            <div id="variantStockTable">Loading...</div>
+        </div>
+
+        <div class="content-box">
+            <h2>Add Stock</h2>
+            <div id="messageBox" class="message"></div>
+
+            <form id="addStockForm" class="form-grid">
+                <select id="addStockVariant" required>
+                    <option value="">Select variant</option>
+                </select>
+
+                <input id="addStockQuantity" type="number" placeholder="Quantity to add" required>
+                <input id="addStockNote" type="text" placeholder="Note optional">
+
+                <button type="submit">Add Stock</button>
+            </form>
+        </div>
+
+        <div class="content-box">
+            <h2>Remove Stock</h2>
+
+            <form id="removeStockForm" class="form-grid">
+                <select id="removeStockVariant" required>
+                    <option value="">Select variant</option>
+                </select>
+
+                <input id="removeStockQuantity" type="number" placeholder="Quantity to remove" required>
+                <input id="removeStockNote" type="text" placeholder="Note optional">
+
+                <button type="submit">Remove Stock</button>
+            </form>
+        </div>
+
+        <div class="content-box">
+            <h2>Stock History</h2>
+
+            <div class="form-grid">
+                <select id="historyVariant">
+                    <option value="">All variants</option>
+                </select>
+
+                <button onclick="refreshStockHistory()">Load History</button>
+            </div>
+
+            <div id="stockHistoryTable">Loading...</div>
+        </div>
+
+        <div class="content-box">
+            <h2>Low Stock</h2>
+
+            <div class="form-grid">
+                <input id="lowStockLimit" type="number" value="5" placeholder="Low stock limit">
+                <button onclick="refreshLowStockFromStockPage()">Check Low Stock</button>
+            </div>
+
+            <div id="lowStockTable">Choose limit and check low stock.</div>
+        </div>
+    `);
+
+    await loadStockVariantDropdowns();
+
+    document.getElementById("addStockForm").addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        const createdBy = localStorage.getItem("user_email") || "Dashboard User";
+
+        try {
+            await apiPost("/stock/add", {
+                variant_id: Number(document.getElementById("addStockVariant").value),
+                quantity: Number(document.getElementById("addStockQuantity").value),
+                note: document.getElementById("addStockNote").value || null,
+                created_by: createdBy
+            });
+
+            showMessage("Stock added successfully");
+
+            document.getElementById("addStockQuantity").value = "";
+            document.getElementById("addStockNote").value = "";
+
+            await refreshVariantStockTable();
+            await refreshStockHistory();
+
+        } catch (error) {
+            showMessage(error.message, "error");
+        }
+    });
+
+    document.getElementById("removeStockForm").addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        const createdBy = localStorage.getItem("user_email") || "Dashboard User";
+
+        try {
+            await apiPost("/stock/remove", {
+                variant_id: Number(document.getElementById("removeStockVariant").value),
+                quantity: Number(document.getElementById("removeStockQuantity").value),
+                note: document.getElementById("removeStockNote").value || null,
+                created_by: createdBy
+            });
+
+            showMessage("Stock removed successfully");
+
+            document.getElementById("removeStockQuantity").value = "";
+            document.getElementById("removeStockNote").value = "";
+
+            await refreshVariantStockTable();
+            await refreshStockHistory();
+
+        } catch (error) {
+            showMessage(error.message, "error");
+        }
+    });
+
+    await refreshVariantStockTable();
+    await refreshStockHistory();
+}
+
+async function loadStockVariantDropdowns() {
+    const addSelect = document.getElementById("addStockVariant");
+    const removeSelect = document.getElementById("removeStockVariant");
+    const historySelect = document.getElementById("historyVariant");
+
+    try {
+        const variants = await apiGet("/variants/");
+
+        variants.forEach(variant => {
+            const label = `${variant.id} - ${variant.sku} | ${variant.size} | ${variant.color} | Stock: ${variant.stock_quantity}`;
+
+            const addOption = document.createElement("option");
+            addOption.value = variant.id;
+            addOption.innerText = label;
+            addSelect.appendChild(addOption);
+
+            const removeOption = document.createElement("option");
+            removeOption.value = variant.id;
+            removeOption.innerText = label;
+            removeSelect.appendChild(removeOption);
+
+            const historyOption = document.createElement("option");
+            historyOption.value = variant.id;
+            historyOption.innerText = label;
+            historySelect.appendChild(historyOption);
+        });
+
+    } catch (error) {
+        showMessage("Could not load variants. Create product variants first.", "error");
+    }
+}
+
+function renderVariantStockTable(variants) {
+    if (!variants.length) {
+        return "<p>No variants found.</p>";
+    }
+
+    let html = `
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Product ID</th>
+                    <th>SKU</th>
+                    <th>Size</th>
+                    <th>Color</th>
+                    <th>Sell Price</th>
+                    <th>Current Stock</th>
+                    <th>Active</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    variants.forEach(variant => {
+        html += `
+            <tr>
+                <td>${variant.id}</td>
+                <td>${variant.product_id}</td>
+                <td>${variant.sku}</td>
+                <td>${variant.size}</td>
+                <td>${variant.color}</td>
+                <td>${variant.sell_price}</td>
+                <td><strong>${variant.stock_quantity}</strong></td>
+                <td>${variant.is_active}</td>
+            </tr>
+        `;
+    });
+
+    html += "</tbody></table>";
+    return html;
+}
+
+async function refreshVariantStockTable() {
+    try {
+        const variants = await apiGet("/variants/");
+        document.getElementById("variantStockTable").innerHTML = renderVariantStockTable(variants);
+    } catch (error) {
+        document.getElementById("variantStockTable").innerHTML = `<p class="error-text">${error.message}</p>`;
+    }
+}
+
+async function refreshStockHistory() {
+    const variantId = document.getElementById("historyVariant") ? document.getElementById("historyVariant").value : "";
+
+    let url = "/stock/history";
+
+    if (variantId) {
+        url = `/stock/history?variant_id=${variantId}`;
+    }
+
+    try {
+        const history = await apiGet(url);
+        document.getElementById("stockHistoryTable").innerHTML = renderTable(history);
+    } catch (error) {
+        document.getElementById("stockHistoryTable").innerHTML = `<p class="error-text">${error.message}</p>`;
+    }
+}
+
+async function refreshLowStockFromStockPage() {
+    const limit = document.getElementById("lowStockLimit").value || 5;
+
+    try {
+        const data = await apiGet(`/stock/low?threshold=${limit}`);
+        document.getElementById("lowStockTable").innerHTML = renderTable(data);
+    } catch (error) {
+        document.getElementById("lowStockTable").innerHTML = `<p class="error-text">${error.message}</p>`;
+    }
+}
