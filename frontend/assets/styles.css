@@ -181,3 +181,53 @@ th, td {
 th {
     background: #f9fafb;
 }
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.form-grid button {
+    border: none;
+    background: #111827;
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: bold;
+}
+
+select {
+    width: 100%;
+    padding: 12px;
+    margin-top: 6px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+}
+
+.message {
+    display: none;
+    padding: 10px;
+    border-radius: 8px;
+    margin: 12px 0;
+}
+
+.message.success {
+    display: block;
+    background: #dcfce7;
+    color: #166534;
+}
+
+.message.error {
+    display: block;
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.error-text {
+    color: #991b1b;
+    background: #fee2e2;
+    padding: 10px;
+    border-radius: 8px;
+}

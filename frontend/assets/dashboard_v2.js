@@ -1,0 +1,665 @@
+function getToken() {
+    return localStorage.getItem("access_token");
+}
+
+function logout() {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("user_email");
+    localStorage.removeItem("user_role");
+    window.location.href = "/site/login.html";
+}
+
+function setPage(title, subtitle) {
+    document.getElementById("pageTitle").innerText = title;
+    document.getElementById("pageSubtitle").innerText = subtitle;
+}
+
+function setContent(html) {
+    document.getElementById("mainContent").innerHTML = html;
+}
+
+async function apiGet(url) {
+    const response = await fetch(url, {
+        headers: {
+            "Authorization": `Bearer ${getToken()}`
+        }
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.detail || "Request failed");
+    }
+
+    return data;
+}
+
+async function apiPost(url, body) {
+    const response = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${getToken()}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.detail || "Request failed");
+    }
+
+    return data;
+}
+
+function renderTable(data) {
+    if (!Array.isArray(data)) {
+        data = [data];
+    }
+
+    if (data.length === 0) {
+        return "<p>No data found.</p>";
+    }
+
+    const keys = Object.keys(data[0]);
+
+    let html = "<table><thead><tr>";
+
+    keys.forEach(key => {
+        html += `<th>${key}</th>`;
+    });
+
+    html += "</tr></thead><tbody>";
+
+    data.forEach(row => {
+        html += "<tr>";
+
+        keys.forEach(key => {
+            let value = row[key];
+
+            if (typeof value === "object" && value !== null) {
+                value = JSON.stringify(value);
+            }
+
+            html += `<td>${value ?? ""}</td>`;
+        });
+
+        html += "</tr>";
+    });
+
+    html += "</tbody></table>";
+    return html;
+}
+
+function showMessage(message, type = "success") {
+    const box = document.getElementById("messageBox");
+    if (!box) return;
+
+    box.className = type === "success" ? "message success" : "message error";
+    box.innerText = message;
+    box.style.display = "block";
+}
+
+async function loadMe() {
+    if (!getToken()) {
+        window.location.href = "/site/login.html";
+        return;
+    }
+
+    try {
+        const user = await apiGet("/auth/me");
+        document.getElementById("accountInfo").innerText = `${user.email} (${user.role})`;
+
+        const icon = document.querySelector(".account-icon");
+        icon.innerText = user.email[0].toUpperCase();
+    } catch (error) {
+        logout();
+    }
+}
+
+function loadDashboard() {
+    setPage("Dashboard V2", "Interactive dashboard is working.");
+
+    setContent(`
+        <div class="cards">
+            <div class="card" onclick="loadCategoriesPage()">
+                <h3>Categories</h3>
+                <p>Create and view categories.</p>
+            </div>
+
+            <div class="card" onclick="loadProductsPage()">
+                <h3>Products</h3>
+                <p>Create and search products.</p>
+            </div>
+
+            <div class="card" onclick="loadVariantsPage()">
+                <h3>Variants</h3>
+                <p>Create product variants.</p>
+            </div>
+
+            <div class="card" onclick="loadQuick('/reports/profit', 'Reports')">
+                <h3>Reports</h3>
+                <p>View reports.</p>
+            </div>
+        </div>
+    `);
+}
+
+async function loadCategoriesPage() {
+    setPage("Categories", "Create and view categories.");
+
+    setContent(`
+        <div class="content-box">
+            <h2>Create Category</h2>
+            <div id="messageBox" class="message"></div>
+
+            <form id="categoryForm" class="form-grid">
+                <input id="categoryName" type="text" placeholder="Category name" required>
+                <input id="categoryDescription" type="text" placeholder="Description">
+                <button type="submit">Create Category</button>
+            </form>
+        </div>
+
+        <div class="content-box">
+            <h2>Category List</h2>
+            <div id="categoryTable">Loading...</div>
+        </div>
+    `);
+
+    document.getElementById("categoryForm").addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        try {
+            await apiPost("/categories/", {
+                name: document.getElementById("categoryName").value,
+                description: document.getElementById("categoryDescription").value
+            });
+
+            showMessage("Category created successfully");
+            document.getElementById("categoryName").value = "";
+            document.getElementById("categoryDescription").value = "";
+            await refreshCategories();
+
+        } catch (error) {
+            showMessage(error.message, "error");
+        }
+    });
+
+    await refreshCategories();
+}
+
+async function refreshCategories() {
+    try {
+        const data = await apiGet("/categories/");
+        document.getElementById("categoryTable").innerHTML = renderTable(data);
+    } catch (error) {
+        document.getElementById("categoryTable").innerHTML = `<p class="error-text">${error.message}</p>`;
+    }
+}
+
+async function loadProductsPage() {
+    setPage("Products", "Create, view and search products.");
+
+    setContent(`
+        <div class="content-box">
+            <h2>Create Product</h2>
+            <div id="messageBox" class="message"></div>
+
+            <form id="productForm" class="form-grid">
+                <input id="productName" type="text" placeholder="Product name" required>
+
+                <select id="productCategory" required>
+                    <option value="">Select category</option>
+                </select>
+
+                <input id="productBrand" type="text" placeholder="Brand">
+                <input id="productDescription" type="text" placeholder="Description">
+
+                <button type="submit">Create Product</button>
+            </form>
+        </div>
+
+        <div class="content-box">
+            <h2>Search Products</h2>
+            <div class="form-grid">
+                <input id="productSearch" type="text" placeholder="Search product name">
+                <button onclick="searchProducts()">Search</button>
+                <button onclick="refreshProducts()">Show All</button>
+            </div>
+        </div>
+
+        <div class="content-box">
+            <h2>Product List</h2>
+            <div id="productTable">Loading...</div>
+        </div>
+    `);
+
+    await loadCategoryDropdown();
+
+    document.getElementById("productForm").addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        try {
+            await apiPost("/products/", {
+                name: document.getElementById("productName").value,
+                category_id: Number(document.getElementById("productCategory").value),
+                brand: document.getElementById("productBrand").value,
+                description: document.getElementById("productDescription").value
+            });
+
+            showMessage("Product created successfully");
+            await refreshProducts();
+
+        } catch (error) {
+            showMessage(error.message, "error");
+        }
+    });
+
+    await refreshProducts();
+}
+
+async function loadCategoryDropdown() {
+    const select = document.getElementById("productCategory");
+    const categories = await apiGet("/categories/");
+
+    categories.forEach(category => {
+        const option = document.createElement("option");
+        option.value = category.id;
+        option.innerText = `${category.id} - ${category.name}`;
+        select.appendChild(option);
+    });
+}
+
+async function refreshProducts() {
+    try {
+        const data = await apiGet("/products/");
+        document.getElementById("productTable").innerHTML = renderTable(data);
+    } catch (error) {
+        document.getElementById("productTable").innerHTML = `<p class="error-text">${error.message}</p>`;
+    }
+}
+
+async function searchProducts() {
+    const search = document.getElementById("productSearch").value;
+
+    try {
+        const data = await apiGet(`/products/?search=${encodeURIComponent(search)}`);
+        document.getElementById("productTable").innerHTML = renderTable(data);
+    } catch (error) {
+        document.getElementById("productTable").innerHTML = `<p class="error-text">${error.message}</p>`;
+    }
+}
+
+async function loadVariantsPage() {
+    setPage("Variants", "Create and view product variants.");
+
+    setContent(`
+        <div class="content-box">
+            <h2>Create Variant</h2>
+            <div id="messageBox" class="message"></div>
+
+            <form id="variantForm" class="form-grid">
+                <select id="variantProduct" required>
+                    <option value="">Select product</option>
+                </select>
+
+                <input id="variantSize" type="text" placeholder="Size" required>
+                <input id="variantColor" type="text" placeholder="Color" required>
+                <input id="variantBuyPrice" type="number" placeholder="Buy price" required>
+                <input id="variantSellPrice" type="number" placeholder="Sell price" required>
+                <input id="variantStock" type="number" placeholder="Stock quantity" required>
+                <input id="variantSku" type="text" placeholder="SKU" required>
+
+                <button type="submit">Create Variant</button>
+            </form>
+        </div>
+
+        <div class="content-box">
+            <h2>Variant List</h2>
+            <div id="variantTable">Loading...</div>
+        </div>
+    `);
+
+    await loadProductDropdown();
+
+    document.getElementById("variantForm").addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        try {
+            await apiPost("/variants/", {
+                product_id: Number(document.getElementById("variantProduct").value),
+                size: document.getElementById("variantSize").value,
+                color: document.getElementById("variantColor").value,
+                buy_price: Number(document.getElementById("variantBuyPrice").value),
+                sell_price: Number(document.getElementById("variantSellPrice").value),
+                stock_quantity: Number(document.getElementById("variantStock").value),
+                sku: document.getElementById("variantSku").value
+            });
+
+            showMessage("Variant created successfully");
+            await refreshVariants();
+
+        } catch (error) {
+            showMessage(error.message, "error");
+        }
+    });
+
+    await refreshVariants();
+}
+
+async function loadProductDropdown() {
+    const select = document.getElementById("variantProduct");
+    const products = await apiGet("/products/");
+
+    products.forEach(product => {
+        const option = document.createElement("option");
+        option.value = product.id;
+        option.innerText = `${product.id} - ${product.name}`;
+        select.appendChild(option);
+    });
+}
+
+async function refreshVariants() {
+    try {
+        const data = await apiGet("/variants/");
+        document.getElementById("variantTable").innerHTML = renderTable(data);
+    } catch (error) {
+        document.getElementById("variantTable").innerHTML = `<p class="error-text">${error.message}</p>`;
+    }
+}
+
+async function loadQuick(url, title) {
+    setPage(title, `Quick view for ${title}.`);
+
+    setContent(`
+        <div class="content-box">
+            <h2>${title}</h2>
+            <div id="quickTable">Loading...</div>
+        </div>
+    `);
+
+    try {
+        const data = await apiGet(url);
+        document.getElementById("quickTable").innerHTML = renderTable(data);
+    } catch (error) {
+        document.getElementById("quickTable").innerHTML = `<p class="error-text">${error.message}</p>`;
+    }
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    loadMe();
+});
+
+async function loadCustomersPage() {
+    setPage("Customers", "Create, view and search customers.");
+
+    setContent(`
+        <div class="content-box">
+            <h2>Create Customer</h2>
+            <div id="messageBox" class="message"></div>
+
+            <form id="customerForm" class="form-grid">
+                <input id="customerName" type="text" placeholder="Customer name" required>
+                <input id="customerPhone" type="text" placeholder="Phone number" required>
+                <input id="customerEmail" type="email" placeholder="Email">
+                <input id="customerAddress" type="text" placeholder="Address">
+                <button type="submit">Create Customer</button>
+            </form>
+        </div>
+
+        <div class="content-box">
+            <h2>Search Customers</h2>
+            <div class="form-grid">
+                <input id="customerSearch" type="text" placeholder="Search by name, phone, email">
+                <button onclick="searchCustomers()">Search</button>
+                <button onclick="refreshCustomers()">Show All</button>
+            </div>
+        </div>
+
+        <div class="content-box">
+            <h2>Customer List</h2>
+            <div id="customerTable">Loading...</div>
+        </div>
+    `);
+
+    document.getElementById("customerForm").addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        try {
+            await apiPost("/customers/", {
+                name: document.getElementById("customerName").value,
+                phone: document.getElementById("customerPhone").value,
+                email: document.getElementById("customerEmail").value || null,
+                address: document.getElementById("customerAddress").value || null
+            });
+
+            showMessage("Customer created successfully");
+
+            document.getElementById("customerName").value = "";
+            document.getElementById("customerPhone").value = "";
+            document.getElementById("customerEmail").value = "";
+            document.getElementById("customerAddress").value = "";
+
+            await refreshCustomers();
+
+        } catch (error) {
+            showMessage(error.message, "error");
+        }
+    });
+
+    await refreshCustomers();
+}
+
+async function refreshCustomers() {
+    try {
+        const data = await apiGet("/customers/");
+        document.getElementById("customerTable").innerHTML = renderTable(data);
+    } catch (error) {
+        document.getElementById("customerTable").innerHTML = `<p class="error-text">${error.message}</p>`;
+    }
+}
+
+async function searchCustomers() {
+    const search = document.getElementById("customerSearch").value;
+
+    try {
+        const data = await apiGet(`/customers/?search=${encodeURIComponent(search)}`);
+        document.getElementById("customerTable").innerHTML = renderTable(data);
+    } catch (error) {
+        document.getElementById("customerTable").innerHTML = `<p class="error-text">${error.message}</p>`;
+    }
+}
+
+async function loadOrdersPage() {
+    setPage("Orders", "Create orders from customer and product variants.");
+
+    setContent(`
+        <div class="content-box">
+            <h2>Create Order</h2>
+            <div id="messageBox" class="message"></div>
+
+            <form id="orderForm" class="form-grid">
+                <select id="orderCustomer" required>
+                    <option value="">Select customer</option>
+                </select>
+
+                <select id="orderVariant" required>
+                    <option value="">Select variant</option>
+                </select>
+
+                <input id="orderQuantity" type="number" placeholder="Quantity" required>
+                <input id="orderDiscount" type="number" placeholder="Discount" value="0">
+
+                <button type="submit">Create Order</button>
+            </form>
+        </div>
+
+        <div class="content-box">
+            <h2>Order List</h2>
+            <div id="orderTable">Loading...</div>
+        </div>
+    `);
+
+    await loadCustomerDropdown();
+    await loadVariantDropdown();
+
+    document.getElementById("orderForm").addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        const createdBy = localStorage.getItem("user_email") || "Dashboard User";
+
+        try {
+            await apiPost("/orders/", {
+                customer_id: Number(document.getElementById("orderCustomer").value),
+                items: [
+                    {
+                        variant_id: Number(document.getElementById("orderVariant").value),
+                        quantity: Number(document.getElementById("orderQuantity").value)
+                    }
+                ],
+                discount: Number(document.getElementById("orderDiscount").value || 0),
+                created_by: createdBy
+            });
+
+            showMessage("Order created successfully. Stock reduced automatically.");
+
+            document.getElementById("orderQuantity").value = "";
+            document.getElementById("orderDiscount").value = "0";
+
+            await refreshOrders();
+
+        } catch (error) {
+            showMessage(error.message, "error");
+        }
+    });
+
+    await refreshOrders();
+}
+
+async function loadCustomerDropdown() {
+    const select = document.getElementById("orderCustomer");
+    const customers = await apiGet("/customers/");
+
+    customers.forEach(customer => {
+        const option = document.createElement("option");
+        option.value = customer.id;
+        option.innerText = `${customer.id} - ${customer.name} (${customer.phone})`;
+        select.appendChild(option);
+    });
+}
+
+async function loadVariantDropdown() {
+    const select = document.getElementById("orderVariant");
+    const variants = await apiGet("/variants/");
+
+    variants.forEach(variant => {
+        const option = document.createElement("option");
+        option.value = variant.id;
+        option.innerText = `${variant.id} - ${variant.sku} | ${variant.size} | ${variant.color} | Stock: ${variant.stock_quantity} | Price: ${variant.sell_price}`;
+        select.appendChild(option);
+    });
+}
+
+async function refreshOrders() {
+    try {
+        const data = await apiGet("/orders/");
+        document.getElementById("orderTable").innerHTML = renderTable(data);
+    } catch (error) {
+        document.getElementById("orderTable").innerHTML = `<p class="error-text">${error.message}</p>`;
+    }
+}
+
+async function loadPaymentsPage() {
+    setPage("Payments", "Receive payments for orders.");
+
+    setContent(`
+        <div class="content-box">
+            <h2>Create Payment</h2>
+            <div id="messageBox" class="message"></div>
+
+            <form id="paymentForm" class="form-grid">
+                <select id="paymentOrder" required>
+                    <option value="">Select order</option>
+                </select>
+
+                <select id="paymentMethod" required>
+                    <option value="">Select payment method</option>
+                    <option value="cash">Cash</option>
+                    <option value="bkash">bKash</option>
+                    <option value="nagad">Nagad</option>
+                    <option value="card">Card</option>
+                </select>
+
+                <input id="paymentAmount" type="number" placeholder="Amount" required>
+
+                <select id="paymentStatus" required>
+                    <option value="paid">Paid</option>
+                    <option value="pending">Pending</option>
+                    <option value="failed">Failed</option>
+                    <option value="refunded">Refunded</option>
+                </select>
+
+                <input id="transactionId" type="text" placeholder="Transaction ID optional">
+
+                <button type="submit">Create Payment</button>
+            </form>
+        </div>
+
+        <div class="content-box">
+            <h2>Payment List</h2>
+            <div id="paymentTable">Loading...</div>
+        </div>
+    `);
+
+    await loadOrderDropdown();
+
+    document.getElementById("paymentForm").addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        const transactionValue = document.getElementById("transactionId").value;
+
+        try {
+            await apiPost("/payments/", {
+                order_id: Number(document.getElementById("paymentOrder").value),
+                payment_method: document.getElementById("paymentMethod").value,
+                amount: Number(document.getElementById("paymentAmount").value),
+                status: document.getElementById("paymentStatus").value,
+                transaction_id: transactionValue || null
+            });
+
+            showMessage("Payment created successfully. If fully paid, order status becomes paid.");
+
+            document.getElementById("paymentAmount").value = "";
+            document.getElementById("transactionId").value = "";
+
+            await refreshPayments();
+
+        } catch (error) {
+            showMessage(error.message, "error");
+        }
+    });
+
+    await refreshPayments();
+}
+
+async function loadOrderDropdown() {
+    const select = document.getElementById("paymentOrder");
+    const orders = await apiGet("/orders/");
+
+    orders.forEach(order => {
+        const option = document.createElement("option");
+        option.value = order.id;
+        option.innerText = `${order.id} - ${order.order_number} | Final: ${order.final_amount} | Status: ${order.status}`;
+        select.appendChild(option);
+    });
+}
+
+async function refreshPayments() {
+    try {
+        const data = await apiGet("/payments/");
+        document.getElementById("paymentTable").innerHTML = renderTable(data);
+    } catch (error) {
+        document.getElementById("paymentTable").innerHTML = `<p class="error-text">${error.message}</p>`;
+    }
+}

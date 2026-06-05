@@ -11,9 +11,10 @@
         <div class="brand">Fashion Store</div>
 
         <div class="nav-links">
-            <button onclick="loadSection('products')">Products</button>
-            <button onclick="loadSection('categories')">Categories</button>
-            <button onclick="loadSection('variants')">Variants</button>
+            <button onclick="loadDashboard()">Dashboard</button>
+            <button onclick="loadCategoriesPage()">Categories</button>
+            <button onclick="loadProductsPage()">Products</button>
+            <button onclick="loadVariantsPage()">Variants</button>
             <button onclick="loadSection('stock')">Stock</button>
             <button onclick="loadSection('customers')">Customers</button>
             <button onclick="loadSection('orders')">Orders</button>
@@ -31,36 +32,31 @@
 
     <main class="dashboard">
         <section class="welcome">
-            <h1>Dashboard</h1>
-            <p>Manage your fashion store inventory, sales, orders, payments and reports.</p>
+            <h1 id="pageTitle">Dashboard</h1>
+            <p id="pageSubtitle">Manage your fashion store inventory, sales, orders, payments and reports.</p>
         </section>
 
-        <section class="cards">
-            <div class="card" onclick="loadSection('products')">
-                <h3>Products</h3>
-                <p>Manage product list and search items.</p>
-            </div>
+        <section id="mainContent">
+            <div class="cards">
+                <div class="card" onclick="loadCategoriesPage()">
+                    <h3>Categories</h3>
+                    <p>Create and view fashion categories.</p>
+                </div>
 
-            <div class="card" onclick="loadSection('variants')">
-                <h3>Variants</h3>
-                <p>Manage size, color, price, SKU and stock.</p>
-            </div>
+                <div class="card" onclick="loadProductsPage()">
+                    <h3>Products</h3>
+                    <p>Create products and search products.</p>
+                </div>
 
-            <div class="card" onclick="loadSection('orders')">
-                <h3>Orders</h3>
-                <p>Create and track customer orders.</p>
-            </div>
+                <div class="card" onclick="loadVariantsPage()">
+                    <h3>Variants</h3>
+                    <p>Create size, color, price and stock variants.</p>
+                </div>
 
-            <div class="card" onclick="loadSection('reports')">
-                <h3>Reports</h3>
-                <p>View sales, profit and low-stock reports.</p>
-            </div>
-        </section>
-
-        <section class="content-box">
-            <h2 id="sectionTitle">Quick View</h2>
-            <div id="contentArea">
-                Select an option from the top menu.
+                <div class="card" onclick="loadSection('reports')">
+                    <h3>Reports</h3>
+                    <p>View sales, profit and stock reports.</p>
+                </div>
             </div>
         </section>
     </main>

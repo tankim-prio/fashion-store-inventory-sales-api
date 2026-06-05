@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard V2 - Fashion Store API</title>
+    <link rel="stylesheet" href="/site/assets/styles.css?v=1000">
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="brand">Fashion Store</div>
+
+    <div class="nav-links">
+        <button onclick="loadDashboard()">Dashboard</button>
+        <button onclick="loadCategoriesPage()">Categories</button>
+        <button onclick="loadProductsPage()">Products</button>
+        <button onclick="loadVariantsPage()">Variants</button>
+        <button onclick="loadQuick('/stock/history', 'Stock')">Stock</button>
+        <button onclick="loadCustomersPage()">Customers</button>
+        <button onclick="loadOrdersPage()">Orders</button>
+        <button onclick="loadPaymentsPage()">Payments</button>
+        <button onclick="loadQuick('/invoices/', 'Invoices')">Invoices</button>
+        <button onclick="loadQuick('/reports/profit', 'Reports')">Reports</button>
+        <button onclick="loadQuick('/users/', 'Users')">Users</button>
+    </div>
+
+    <div class="account">
+        <div class="account-icon">A</div>
+        <span id="accountInfo">Loading...</span>
+        <button class="logout-btn" onclick="logout()">Sign out</button>
+    </div>
+</nav>
+
+<main class="dashboard">
+    <section class="welcome">
+        <h1 id="pageTitle">Dashboard V2</h1>
+        <p id="pageSubtitle">Interactive dashboard is working.</p>
+    </section>
+
+    <section id="mainContent">
+        <div class="cards">
+            <div class="card" onclick="loadCategoriesPage()">
+                <h3>Categories</h3>
+                <p>Create and view categories.</p>
+            </div>
+
+            <div class="card" onclick="loadProductsPage()">
+                <h3>Products</h3>
+                <p>Create and search products.</p>
+            </div>
+
+            <div class="card" onclick="loadVariantsPage()">
+                <h3>Variants</h3>
+                <p>Create product variants.</p>
+            </div>
+
+            <div class="card" onclick="loadCustomersPage()">
+                <h3>Customers</h3>
+                <p>Create and manage customers.</p>
+            </div>
+
+            <div class="card" onclick="loadOrdersPage()">
+                <h3>Orders</h3>
+                <p>Create customer orders.</p>
+            </div>
+
+            <div class="card" onclick="loadPaymentsPage()">
+                <h3>Payments</h3>
+                <p>Receive order payments.</p>
+            </div>
+
+            <div class="card" onclick="loadQuick('/invoices/', 'Invoices')">
+                <h3>Invoices</h3>
+                <p>View invoices.</p>
+            </div>
+
+            <div class="card" onclick="loadQuick('/reports/profit', 'Reports')">
+                <h3>Reports</h3>
+                <p>View reports.</p>
+            </div>
+        </div>
+    </section>
+</main>
+
+<script src="/site/assets/dashboard_v2.js?v=1000"></script>
+</body>
+</html>
