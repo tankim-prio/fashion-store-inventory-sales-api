@@ -1,16 +1,43 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard V2 - Fashion Store API</title>
-    <link rel="stylesheet" href="/site/assets/styles.css?v=8000">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fashion Store Dashboard</title>
+    <link rel="stylesheet" href="/site/assets/styles.css?v=22000">
 </head>
 <body>
 
-<nav class="navbar">
-    <div class="brand">Fashion Store</div>
+<header class="topbar">
+    <div class="topbar-inner">
+        <div class="topbar-brand">Fashion Store</div>
 
-    <div class="nav-links">
+        <nav class="desktop-nav">
+            <button onclick="loadDashboard()">Dashboard</button>
+            <button onclick="loadCategoriesPage()">Categories</button>
+            <button onclick="loadProductsPage()">Products</button>
+            <button onclick="loadVariantsPage()">Variants</button>
+            <button onclick="loadStockPage()">Stock</button>
+            <button onclick="loadCustomersPage()">Customers</button>
+            <button onclick="loadOrdersPage()">Orders</button>
+            <button onclick="loadPaymentsPage()">Payments</button>
+            <button onclick="loadInvoicesPage()">Invoices</button>
+            <button onclick="loadReportsPage()">Reports</button>
+            <button class="admin-only" onclick="loadUsersPage()">Users</button>
+        </nav>
+
+        <div class="topbar-actions">
+            <button class="profile-btn" onclick="toggleProfilePanel()" aria-label="Account">
+                <span class="profile-avatar">A</span>
+            </button>
+
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Menu">
+                ☰
+            </button>
+        </div>
+    </div>
+
+    <nav class="mobile-menu" id="mobileMenu">
         <button onclick="loadDashboard()">Dashboard</button>
         <button onclick="loadCategoriesPage()">Categories</button>
         <button onclick="loadProductsPage()">Products</button>
@@ -21,77 +48,66 @@
         <button onclick="loadPaymentsPage()">Payments</button>
         <button onclick="loadInvoicesPage()">Invoices</button>
         <button onclick="loadReportsPage()">Reports</button>
-        <button onclick="loadUsersPage()">Users</button>
+        <button class="admin-only" onclick="loadUsersPage()">Users</button>
+    </nav>
+</header>
+
+<div class="profile-panel" id="profilePanel">
+    <div class="profile-panel-header">
+        <div class="profile-avatar profile-avatar-large">A</div>
+
+        <div class="profile-title-box">
+            <h3 id="profileDisplayName">Account</h3>
+            <p id="profileDisplayRole">Loading...</p>
+        </div>
     </div>
 
-    <div class="account">
-        <div class="account-icon">A</div>
-        <span id="accountInfo">Loading...</span>
-        <button class="logout-btn" onclick="logout()">Sign out</button>
+    <div id="profileMessage" class="profile-message"></div>
+
+    <div id="profileViewMode">
+        <div class="profile-info-row">
+            <span>Name</span>
+            <strong id="profileViewName">-</strong>
+        </div>
+
+        <div class="profile-info-row">
+            <span>Email</span>
+            <strong id="profileViewEmail">-</strong>
+        </div>
+
+        <div class="profile-info-row">
+            <span>Phone</span>
+            <strong id="profileViewPhone">Not added</strong>
+        </div>
+
+        <button class="profile-edit-btn" onclick="openProfileEdit()">Edit Profile</button>
+        <button class="profile-logout" onclick="logout()">Sign out</button>
     </div>
-</nav>
+
+    <div id="profileEditMode" class="hidden">
+        <label>Full Name</label>
+        <input type="text" id="profileName" placeholder="Full name">
+
+        <label>Email</label>
+        <input type="email" id="profileEmail" placeholder="Email" disabled>
+
+        <label>Phone</label>
+        <input type="text" id="profilePhone" placeholder="Phone">
+
+        <button class="profile-save" onclick="saveProfile()">Save Changes</button>
+        <button class="profile-cancel-btn" onclick="cancelProfileEdit()">Cancel</button>
+    </div>
+</div>
 
 <main class="dashboard">
     <section class="welcome">
-        <h1 id="pageTitle">Dashboard V2</h1>
-        <p id="pageSubtitle">Interactive dashboard is working.</p>
+        <h1 id="pageTitle">Dashboard</h1>
+        <p id="pageSubtitle">Interactive fashion store inventory and sales management dashboard.</p>
     </section>
 
-    <section id="mainContent">
-        <div class="cards">
-            <div class="card" onclick="loadCategoriesPage()">
-                <h3>Categories</h3>
-                <p>Create and view categories.</p>
-            </div>
-
-            <div class="card" onclick="loadProductsPage()">
-                <h3>Products</h3>
-                <p>Create and search products.</p>
-            </div>
-
-            <div class="card" onclick="loadVariantsPage()">
-                <h3>Variants</h3>
-                <p>Create product variants.</p>
-            </div>
-
-            <div class="card" onclick="loadCustomersPage()">
-                <h3>Customers</h3>
-                <p>Create and manage customers.</p>
-            </div>
-
-            <div class="card" onclick="loadOrdersPage()">
-                <h3>Orders</h3>
-                <p>Create customer orders.</p>
-            </div>
-
-            <div class="card" onclick="loadPaymentsPage()">
-                <h3>Payments</h3>
-                <p>Receive order payments.</p>
-            </div>
-
-            <div class="card" onclick="loadInvoicesPage()">
-                <h3>Invoices</h3>
-                <p>Generate and view invoices.</p>
-            </div>
-
-            <div class="card" onclick="loadReportsPage()">
-                <h3>Reports</h3>
-                <p>View sales, profit and stock reports.</p>
-            </div>
-        </div>
-    </section>
+    <section id="mainContent"></section>
 </main>
 
-<script src="/site/assets/dashboard_v2.js?v=8000"></script>
+<script src="/site/assets/dashboard_final.js?v=22000"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-

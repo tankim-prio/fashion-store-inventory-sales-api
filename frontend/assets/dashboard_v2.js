@@ -2726,3 +2726,477 @@ async function apiDelete(url) {
 
     return data;
 }
+
+function toggleMobileMenu() {
+    const navLinks = document.getElementById("navLinks");
+
+    if (navLinks) {
+        navLinks.classList.toggle("open");
+    }
+}
+
+function closeMobileMenu() {
+    const navLinks = document.getElementById("navLinks");
+
+    if (navLinks) {
+        navLinks.classList.remove("open");
+    }
+}
+
+document.addEventListener("click", function(event) {
+    const navLinks = document.getElementById("navLinks");
+    const navToggle = document.querySelector(".nav-toggle");
+
+    if (!navLinks || !navToggle) return;
+
+    const clickedInsideMenu = navLinks.contains(event.target);
+    const clickedToggle = navToggle.contains(event.target);
+
+    if (!clickedInsideMenu && !clickedToggle) {
+        navLinks.classList.remove("open");
+    }
+});
+
+document.addEventListener("DOMContentLoaded", function() {
+    const navButtons = document.querySelectorAll(".nav-links button");
+
+    navButtons.forEach(button => {
+        button.addEventListener("click", function() {
+            closeMobileMenu();
+        });
+    });
+});
+
+/* =====================================================
+   FINAL MOBILE MENU FIX
+   ===================================================== */
+
+function toggleMobileMenu() {
+    const navMenu = document.getElementById("navMenu");
+
+    if (navMenu) {
+        navMenu.classList.toggle("open");
+    }
+}
+
+function closeMobileMenu() {
+    const navMenu = document.getElementById("navMenu");
+
+    if (navMenu) {
+        navMenu.classList.remove("open");
+    }
+}
+
+document.addEventListener("click", function(event) {
+    const navMenu = document.getElementById("navMenu");
+    const navToggle = document.querySelector(".nav-toggle");
+
+    if (!navMenu || !navToggle) return;
+
+    const clickedInsideMenu = navMenu.contains(event.target);
+    const clickedToggle = navToggle.contains(event.target);
+
+    if (!clickedInsideMenu && !clickedToggle) {
+        navMenu.classList.remove("open");
+    }
+});
+
+document.addEventListener("DOMContentLoaded", function() {
+    const navButtons = document.querySelectorAll(".nav-links button");
+
+    navButtons.forEach(button => {
+        button.addEventListener("click", function() {
+            closeMobileMenu();
+        });
+    });
+});
+
+async function loadMe() {
+    const token = getToken();
+
+    if (!token) {
+        window.location.href = "/site/login.html";
+        return;
+    }
+
+    try {
+        const user = await apiGet("/auth/me");
+
+        document.body.dataset.role = user.role;
+
+        const accountInfo = document.getElementById("accountInfo");
+
+        if (accountInfo) {
+            accountInfo.innerText = `${user.email} (${user.role})`;
+        }
+
+        const accountIcon = document.querySelector(".account-icon");
+
+        if (accountIcon) {
+            accountIcon.innerText = user.email[0].toUpperCase();
+        }
+
+    } catch (error) {
+        logout();
+    }
+}
+
+/* =====================================================
+   MODERN TOP BAR + PROFILE DROPDOWN FINAL JS
+   ===================================================== */
+
+let currentProfileUser = null;
+
+function toggleMobileMenu() {
+    const mobileMenu = document.getElementById("mobileMenu");
+    const profileMenu = document.getElementById("profileMenu");
+
+    if (profileMenu) {
+        profileMenu.classList.remove("open");
+    }
+
+    if (mobileMenu) {
+        mobileMenu.classList.toggle("open");
+    }
+}
+
+function closeMobileMenu() {
+    const mobileMenu = document.getElementById("mobileMenu");
+
+    if (mobileMenu) {
+        mobileMenu.classList.remove("open");
+    }
+}
+
+function toggleAccountMenu() {
+    const profileMenu = document.getElementById("profileMenu");
+    const mobileMenu = document.getElementById("mobileMenu");
+
+    if (mobileMenu) {
+        mobileMenu.classList.remove("open");
+    }
+
+    if (profileMenu) {
+        profileMenu.classList.toggle("open");
+    }
+}
+
+function closeAccountMenu() {
+    const profileMenu = document.getElementById("profileMenu");
+
+    if (profileMenu) {
+        profileMenu.classList.remove("open");
+    }
+}
+
+function showProfileMessage(message, type = "success") {
+    const box = document.getElementById("profileMessage");
+
+    if (!box) return;
+
+    box.className = type === "success" ? "profile-message success" : "profile-message error";
+    box.innerText = message;
+}
+
+function fillProfileForm(user) {
+    const displayName = document.getElementById("profileDisplayName");
+    const displayRole = document.getElementById("profileDisplayRole");
+    const profileName = document.getElementById("profileName");
+    const profileEmail = document.getElementById("profileEmail");
+    const profilePhone = document.getElementById("profilePhone");
+
+    if (displayName) displayName.innerText = user.full_name || "Account";
+    if (displayRole) displayRole.innerText = `${user.email} • ${user.role}`;
+
+    if (profileName) profileName.value = user.full_name || "";
+    if (profileEmail) profileEmail.value = user.email || "";
+    if (profilePhone) profilePhone.value = user.phone || "";
+}
+
+async function loadMe() {
+    const token = getToken();
+
+    if (!token) {
+        window.location.href = "/site/login.html";
+        return;
+    }
+
+    try {
+        const user = await apiGet("/auth/me");
+
+        currentProfileUser = user;
+        document.body.dataset.role = user.role;
+
+        const avatars = document.querySelectorAll(".profile-avatar, .account-icon");
+
+        avatars.forEach(avatar => {
+            avatar.innerText = user.email ? user.email[0].toUpperCase() : "A";
+        });
+
+        fillProfileForm(user);
+
+        localStorage.setItem("user_email", user.email);
+        localStorage.setItem("user_role", user.role);
+
+    } catch (error) {
+        logout();
+    }
+}
+
+async function saveProfile() {
+    const fullName = document.getElementById("profileName").value;
+    const email = document.getElementById("profileEmail").value;
+    const phone = document.getElementById("profilePhone").value;
+
+    try {
+        const data = await apiPut("/auth/profile", {
+            full_name: fullName,
+            email: email,
+            phone: phone || null
+        });
+
+        localStorage.setItem("access_token", data.access_token);
+        localStorage.setItem("user_email", data.user.email);
+        localStorage.setItem("user_role", data.user.role);
+
+        currentProfileUser = data.user;
+        document.body.dataset.role = data.user.role;
+
+        const avatars = document.querySelectorAll(".profile-avatar, .account-icon");
+
+        avatars.forEach(avatar => {
+            avatar.innerText = data.user.email ? data.user.email[0].toUpperCase() : "A";
+        });
+
+        fillProfileForm(data.user);
+        showProfileMessage("Profile updated successfully");
+
+    } catch (error) {
+        showProfileMessage(error.message, "error");
+    }
+}
+
+async function deactivateMyAccount() {
+    const confirmDelete = confirm("Are you sure? Your account will be deactivated and you will be logged out.");
+
+    if (!confirmDelete) return;
+
+    try {
+        await apiDelete("/auth/profile");
+        alert("Your account has been deactivated.");
+        logout();
+
+    } catch (error) {
+        showProfileMessage(error.message, "error");
+    }
+}
+
+document.addEventListener("click", function(event) {
+    const profileMenu = document.getElementById("profileMenu");
+    const mobileMenu = document.getElementById("mobileMenu");
+    const profileTrigger = document.querySelector(".profile-trigger");
+    const mobileButton = document.querySelector(".mobile-menu-btn");
+
+    const insideProfile = profileMenu && profileMenu.contains(event.target);
+    const insideMobile = mobileMenu && mobileMenu.contains(event.target);
+    const clickedProfile = profileTrigger && profileTrigger.contains(event.target);
+    const clickedMobile = mobileButton && mobileButton.contains(event.target);
+
+    if (!insideProfile && !clickedProfile) {
+        closeAccountMenu();
+    }
+
+    if (!insideMobile && !clickedMobile) {
+        closeMobileMenu();
+    }
+});
+
+document.addEventListener("DOMContentLoaded", function() {
+    const menuButtons = document.querySelectorAll(".mobile-menu button, .topbar-nav button");
+
+    menuButtons.forEach(button => {
+        button.addEventListener("click", function() {
+            closeMobileMenu();
+        });
+    });
+});
+
+/* =====================================================
+   MODERN TOP BAR + PROFILE DROPDOWN FINAL JS
+   ===================================================== */
+
+let currentProfileUser = null;
+
+function toggleMobileMenu() {
+    const mobileMenu = document.getElementById("mobileMenu");
+    const profileMenu = document.getElementById("profileMenu");
+
+    if (profileMenu) {
+        profileMenu.classList.remove("open");
+    }
+
+    if (mobileMenu) {
+        mobileMenu.classList.toggle("open");
+    }
+}
+
+function closeMobileMenu() {
+    const mobileMenu = document.getElementById("mobileMenu");
+
+    if (mobileMenu) {
+        mobileMenu.classList.remove("open");
+    }
+}
+
+function toggleAccountMenu() {
+    const profileMenu = document.getElementById("profileMenu");
+    const mobileMenu = document.getElementById("mobileMenu");
+
+    if (mobileMenu) {
+        mobileMenu.classList.remove("open");
+    }
+
+    if (profileMenu) {
+        profileMenu.classList.toggle("open");
+    }
+}
+
+function closeAccountMenu() {
+    const profileMenu = document.getElementById("profileMenu");
+
+    if (profileMenu) {
+        profileMenu.classList.remove("open");
+    }
+}
+
+function showProfileMessage(message, type = "success") {
+    const box = document.getElementById("profileMessage");
+
+    if (!box) return;
+
+    box.className = type === "success" ? "profile-message success" : "profile-message error";
+    box.innerText = message;
+}
+
+function fillProfileForm(user) {
+    const displayName = document.getElementById("profileDisplayName");
+    const displayRole = document.getElementById("profileDisplayRole");
+    const profileName = document.getElementById("profileName");
+    const profileEmail = document.getElementById("profileEmail");
+    const profilePhone = document.getElementById("profilePhone");
+
+    if (displayName) displayName.innerText = user.full_name || "Account";
+    if (displayRole) displayRole.innerText = `${user.email} • ${user.role}`;
+
+    if (profileName) profileName.value = user.full_name || "";
+    if (profileEmail) profileEmail.value = user.email || "";
+    if (profilePhone) profilePhone.value = user.phone || "";
+}
+
+async function loadMe() {
+    const token = getToken();
+
+    if (!token) {
+        window.location.href = "/site/login.html";
+        return;
+    }
+
+    try {
+        const user = await apiGet("/auth/me");
+
+        currentProfileUser = user;
+        document.body.dataset.role = user.role;
+
+        const avatars = document.querySelectorAll(".profile-avatar, .account-icon");
+
+        avatars.forEach(avatar => {
+            avatar.innerText = user.email ? user.email[0].toUpperCase() : "A";
+        });
+
+        fillProfileForm(user);
+
+        localStorage.setItem("user_email", user.email);
+        localStorage.setItem("user_role", user.role);
+
+    } catch (error) {
+        logout();
+    }
+}
+
+async function saveProfile() {
+    const fullName = document.getElementById("profileName").value;
+    const email = document.getElementById("profileEmail").value;
+    const phone = document.getElementById("profilePhone").value;
+
+    try {
+        const data = await apiPut("/auth/profile", {
+            full_name: fullName,
+            email: email,
+            phone: phone || null
+        });
+
+        localStorage.setItem("access_token", data.access_token);
+        localStorage.setItem("user_email", data.user.email);
+        localStorage.setItem("user_role", data.user.role);
+
+        currentProfileUser = data.user;
+        document.body.dataset.role = data.user.role;
+
+        const avatars = document.querySelectorAll(".profile-avatar, .account-icon");
+
+        avatars.forEach(avatar => {
+            avatar.innerText = data.user.email ? data.user.email[0].toUpperCase() : "A";
+        });
+
+        fillProfileForm(data.user);
+        showProfileMessage("Profile updated successfully");
+
+    } catch (error) {
+        showProfileMessage(error.message, "error");
+    }
+}
+
+async function deactivateMyAccount() {
+    const confirmDelete = confirm("Are you sure? Your account will be deactivated and you will be logged out.");
+
+    if (!confirmDelete) return;
+
+    try {
+        await apiDelete("/auth/profile");
+        alert("Your account has been deactivated.");
+        logout();
+
+    } catch (error) {
+        showProfileMessage(error.message, "error");
+    }
+}
+
+document.addEventListener("click", function(event) {
+    const profileMenu = document.getElementById("profileMenu");
+    const mobileMenu = document.getElementById("mobileMenu");
+    const profileTrigger = document.querySelector(".profile-trigger");
+    const mobileButton = document.querySelector(".mobile-menu-btn");
+
+    const insideProfile = profileMenu && profileMenu.contains(event.target);
+    const insideMobile = mobileMenu && mobileMenu.contains(event.target);
+    const clickedProfile = profileTrigger && profileTrigger.contains(event.target);
+    const clickedMobile = mobileButton && mobileButton.contains(event.target);
+
+    if (!insideProfile && !clickedProfile) {
+        closeAccountMenu();
+    }
+
+    if (!insideMobile && !clickedMobile) {
+        closeMobileMenu();
+    }
+});
+
+document.addEventListener("DOMContentLoaded", function() {
+    const menuButtons = document.querySelectorAll(".mobile-menu button, .topbar-nav button");
+
+    menuButtons.forEach(button => {
+        button.addEventListener("click", function() {
+            closeMobileMenu();
+        });
+    });
+});

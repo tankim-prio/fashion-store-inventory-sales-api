@@ -19,9 +19,11 @@ def serialize_user(user: User):
         "id": user.id,
         "full_name": user.full_name,
         "email": user.email,
+        "phone": user.phone,
         "role": user.role,
         "is_active": user.is_active,
-        "created_at": str(user.created_at) if getattr(user, "created_at", None) else None
+        "created_at": str(user.created_at) if getattr(user, "created_at", None) else None,
+        "updated_at": str(user.updated_at) if getattr(user, "updated_at", None) else None
     }
 
 
