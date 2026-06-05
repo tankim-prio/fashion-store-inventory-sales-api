@@ -2599,3 +2599,130 @@ function downloadInvoiceHtml() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 }
+
+function formatApiError(data) {
+    if (!data) {
+        return "Request failed";
+    }
+
+    if (data.message) {
+        if (Array.isArray(data.errors) && data.errors.length > 0) {
+            const firstError = data.errors[0];
+
+            if (firstError.field && firstError.message) {
+                return `${data.message}: ${firstError.field} - ${firstError.message}`;
+            }
+        }
+
+        return data.message;
+    }
+
+    if (typeof data.detail === "string") {
+        return data.detail;
+    }
+
+    if (Array.isArray(data.detail)) {
+        const firstError = data.detail[0];
+
+        if (firstError && firstError.loc && firstError.msg) {
+            return `${firstError.loc.join(".")} - ${firstError.msg}`;
+        }
+    }
+
+    return "Request failed";
+}
+
+async function apiGet(url) {
+    const response = await fetch(url, {
+        headers: {
+            "Authorization": `Bearer ${getToken()}`
+        }
+    });
+
+    let data = null;
+
+    try {
+        data = await response.json();
+    } catch (error) {
+        data = null;
+    }
+
+    if (!response.ok) {
+        throw new Error(formatApiError(data));
+    }
+
+    return data;
+}
+
+async function apiPost(url, body) {
+    const response = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${getToken()}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+    });
+
+    let data = null;
+
+    try {
+        data = await response.json();
+    } catch (error) {
+        data = null;
+    }
+
+    if (!response.ok) {
+        throw new Error(formatApiError(data));
+    }
+
+    return data;
+}
+
+async function apiPut(url, body) {
+    const response = await fetch(url, {
+        method: "PUT",
+        headers: {
+            "Authorization": `Bearer ${getToken()}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+    });
+
+    let data = null;
+
+    try {
+        data = await response.json();
+    } catch (error) {
+        data = null;
+    }
+
+    if (!response.ok) {
+        throw new Error(formatApiError(data));
+    }
+
+    return data;
+}
+
+async function apiDelete(url) {
+    const response = await fetch(url, {
+        method: "DELETE",
+        headers: {
+            "Authorization": `Bearer ${getToken()}`
+        }
+    });
+
+    let data = null;
+
+    try {
+        data = await response.json();
+    } catch (error) {
+        data = null;
+    }
+
+    if (!response.ok) {
+        throw new Error(formatApiError(data));
+    }
+
+    return data;
+}

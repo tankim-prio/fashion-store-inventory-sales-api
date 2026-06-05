@@ -1,5 +1,7 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.database import Base, engine
@@ -36,8 +38,67 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title="Fashion Store Inventory API",
     description="Secure backend API for fashion store inventory, sales, orders, payments and reports.",
-    version="1.1.0"
+    version="1.2.0"
 )
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    message = exc.detail if isinstance(exc.detail, str) else "Request failed"
+
+    return JSONResponse(
+        status_code=exc.status_code,
+        headers=exc.headers,
+        content={
+            "success": False,
+            "message": message,
+            "errors": exc.detail if not isinstance(exc.detail, str) else None
+        }
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    formatted_errors = []
+
+    for error in exc.errors():
+        location = error.get("loc", [])
+        field_parts = [str(item) for item in location if item != "body"]
+        field = ".".join(field_parts) if field_parts else "request"
+        message = error.get("msg", "Invalid value")
+
+        formatted_errors.append({
+            "field": field,
+            "message": message,
+            "type": error.get("type", "validation_error")
+        })
+
+    return JSONResponse(
+        status_code=422,
+        content={
+            "success": False,
+            "message": "Validation failed",
+            "errors": formatted_errors
+        }
+    )
+
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={
+            "success": False,
+            "message": "Internal server error",
+            "errors": [
+                {
+                    "field": "server",
+                    "message": "Something went wrong. Check terminal logs for details."
+                }
+            ]
+        }
+    )
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -77,6 +138,7 @@ app.mount("/site", StaticFiles(directory="frontend", html=True), name="site")
 @app.get("/")
 def home():
     return {
+        "success": True,
         "message": "Fashion Store Inventory API is running successfully",
         "frontend": "http://127.0.0.1:8000/site/login.html",
         "dashboard": "http://127.0.0.1:8000/site/dashboard_v2.html",
