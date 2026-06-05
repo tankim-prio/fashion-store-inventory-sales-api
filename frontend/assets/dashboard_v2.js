@@ -2208,3 +2208,394 @@ async function refreshPayments() {
         document.getElementById("paymentTable").innerHTML = `<p class="error-text">${error.message}</p>`;
     }
 }
+
+let currentInvoiceData = null;
+
+async function loadInvoicesPage() {
+    setPage("Invoices", "Generate, view, print and download professional invoices.");
+
+    setContent(`
+        <div class="content-box">
+            <h2>Generate Invoice</h2>
+            <div id="messageBox" class="message"></div>
+
+            <form id="invoiceForm" class="form-grid">
+                <select id="invoiceOrder" required>
+                    <option value="">Select order</option>
+                </select>
+
+                <button type="submit">Generate Invoice</button>
+            </form>
+        </div>
+
+        <div class="content-box">
+            <h2>Invoice Preview</h2>
+
+            <div class="invoice-actions">
+                <button class="small-btn" onclick="printInvoice()">Print / Save as PDF</button>
+                <button class="small-btn" onclick="downloadInvoiceHtml()">Download HTML</button>
+            </div>
+
+            <div id="invoiceDetails">
+                Select an order and generate invoice.
+            </div>
+        </div>
+
+        <div class="content-box">
+            <h2>Invoice List</h2>
+            <button class="small-btn" onclick="refreshInvoices()">Refresh Invoices</button>
+            <div id="invoiceTable">Loading...</div>
+        </div>
+    `);
+
+    await loadInvoiceOrderDropdown();
+
+    document.getElementById("invoiceForm").addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        const orderId = document.getElementById("invoiceOrder").value;
+
+        try {
+            const invoice = await apiGet(`/orders/${orderId}/invoice`);
+
+            currentInvoiceData = invoice;
+
+            showMessage("Invoice generated successfully");
+            document.getElementById("invoiceDetails").innerHTML = renderProfessionalInvoice(invoice);
+
+            await refreshInvoices();
+
+        } catch (error) {
+            showMessage(error.message, "error");
+        }
+    });
+
+    await refreshInvoices();
+}
+
+async function refreshInvoices() {
+    try {
+        const data = await apiGet("/invoices/");
+        document.getElementById("invoiceTable").innerHTML = renderInvoiceListTable(data);
+    } catch (error) {
+        document.getElementById("invoiceTable").innerHTML = `<p class="error-text">${error.message}</p>`;
+    }
+}
+
+function renderInvoiceListTable(invoices) {
+    if (!Array.isArray(invoices)) {
+        invoices = [invoices];
+    }
+
+    if (!invoices.length) {
+        return "<p>No invoice found.</p>";
+    }
+
+    let html = `
+        <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Invoice Number</th>
+                    <th>Order ID</th>
+                    <th>Created At</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    invoices.forEach(invoice => {
+        html += `
+            <tr>
+                <td>${invoice.id}</td>
+                <td>${invoice.invoice_number}</td>
+                <td>${invoice.order_id}</td>
+                <td>${invoice.created_at || ""}</td>
+                <td>
+                    <button class="small-btn" onclick="viewInvoiceFromList(${invoice.order_id})">View</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += `
+            </tbody>
+        </table>
+        </div>
+    `;
+
+    return html;
+}
+
+async function viewInvoiceFromList(orderId) {
+    try {
+        const invoice = await apiGet(`/orders/${orderId}/invoice`);
+
+        currentInvoiceData = invoice;
+
+        document.getElementById("invoiceDetails").innerHTML = renderProfessionalInvoice(invoice);
+
+        const invoiceDetails = document.getElementById("invoiceDetails");
+        invoiceDetails.scrollIntoView({ behavior: "smooth" });
+
+    } catch (error) {
+        showMessage(error.message, "error");
+    }
+}
+
+function renderProfessionalInvoice(invoice) {
+    let itemsHtml = "";
+
+    invoice.items.forEach((item, index) => {
+        itemsHtml += `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${item.product_name}</td>
+                <td>${item.size}</td>
+                <td>${item.color}</td>
+                <td>${item.sku}</td>
+                <td>${item.quantity}</td>
+                <td>${money(item.unit_price)}</td>
+                <td>${money(item.total_price)}</td>
+            </tr>
+        `;
+    });
+
+    return `
+        <div id="printableInvoice" class="invoice-print-area">
+            <div class="invoice-header">
+                <div class="invoice-brand">
+                    <h1>Fashion Store</h1>
+                    <p>Inventory & Sales Management</p>
+                    <p>Rangpur, Bangladesh</p>
+                    <p>Phone: 017000-0000</p>
+                </div>
+
+                <div class="invoice-meta">
+                    <h2>INVOICE</h2>
+                    <p><strong>Invoice No:</strong> ${invoice.invoice_number}</p>
+                    <p><strong>Order No:</strong> ${invoice.order_number}</p>
+                    <p><strong>Date:</strong> ${invoice.created_at || new Date().toLocaleDateString()}</p>
+                    <p><strong>Status:</strong> ${getBadge(invoice.payment_status)}</p>
+                </div>
+            </div>
+
+            <div class="invoice-info-grid">
+                <div class="invoice-info-box">
+                    <h3>Bill To</h3>
+                    <p><strong>Name:</strong> ${invoice.customer_name}</p>
+                    <p><strong>Phone:</strong> ${invoice.customer_phone}</p>
+                    <p><strong>Address:</strong> ${invoice.customer_address || ""}</p>
+                </div>
+
+                <div class="invoice-info-box">
+                    <h3>Order Info</h3>
+                    <p><strong>Order Status:</strong> ${getBadge(invoice.order_status)}</p>
+                    <p><strong>Payment Status:</strong> ${getBadge(invoice.payment_status)}</p>
+                    <p><strong>Generated By:</strong> ${localStorage.getItem("user_email") || "System"}</p>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Product</th>
+                        <th>Size</th>
+                        <th>Color</th>
+                        <th>SKU</th>
+                        <th>Qty</th>
+                        <th>Unit Price</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    ${itemsHtml}
+                </tbody>
+            </table>
+
+            <div class="invoice-total-box">
+                <div class="invoice-total-row">
+                    <span>Total Amount</span>
+                    <strong>${money(invoice.total_amount)}</strong>
+                </div>
+
+                <div class="invoice-total-row">
+                    <span>Discount</span>
+                    <strong>${money(invoice.discount)}</strong>
+                </div>
+
+                <div class="invoice-total-row final">
+                    <span>Final Amount</span>
+                    <strong>${money(invoice.final_amount)}</strong>
+                </div>
+
+                <div class="invoice-total-row">
+                    <span>Paid Amount</span>
+                    <strong>${money(invoice.paid_amount)}</strong>
+                </div>
+
+                <div class="invoice-total-row">
+                    <span>Due Amount</span>
+                    <strong>${money(invoice.due_amount)}</strong>
+                </div>
+            </div>
+
+            <div class="invoice-footer">
+                <p>Thank you for shopping with Fashion Store.</p>
+                <p>This invoice was generated from Fashion Store Inventory & Sales Management API.</p>
+            </div>
+        </div>
+    `;
+}
+
+function printInvoice() {
+    if (!currentInvoiceData) {
+        alert("Please generate or view an invoice first.");
+        return;
+    }
+
+    window.print();
+}
+
+function downloadInvoiceHtml() {
+    if (!currentInvoiceData) {
+        alert("Please generate or view an invoice first.");
+        return;
+    }
+
+    const invoiceHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>${currentInvoiceData.invoice_number}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 30px;
+            color: #111827;
+        }
+
+        .invoice-print-area {
+            background: white;
+            border: 1px solid #e5e7eb;
+            padding: 30px;
+            border-radius: 12px;
+        }
+
+        .invoice-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #111827;
+            padding-bottom: 18px;
+            margin-bottom: 20px;
+        }
+
+        .invoice-brand h1 {
+            margin: 0;
+            font-size: 30px;
+        }
+
+        .invoice-brand p {
+            margin: 5px 0;
+            color: #6b7280;
+        }
+
+        .invoice-meta {
+            text-align: right;
+        }
+
+        .invoice-info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 22px;
+        }
+
+        .invoice-info-box {
+            background: #f9fafb;
+            padding: 16px;
+            border-radius: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 14px;
+        }
+
+        th, td {
+            padding: 11px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        th {
+            background: #f9fafb;
+        }
+
+        .invoice-total-box {
+            width: 360px;
+            margin-left: auto;
+            margin-top: 20px;
+            background: #f9fafb;
+            padding: 18px;
+            border-radius: 10px;
+        }
+
+        .invoice-total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 7px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .invoice-total-row.final {
+            font-size: 20px;
+            font-weight: bold;
+            border-bottom: none;
+        }
+
+        .invoice-footer {
+            margin-top: 30px;
+            text-align: center;
+            color: #6b7280;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 15px;
+        }
+
+        .badge {
+            padding: 5px 9px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-block;
+            background: #dcfce7;
+            color: #166534;
+        }
+    </style>
+</head>
+<body>
+    ${renderProfessionalInvoice(currentInvoiceData)}
+</body>
+</html>
+    `;
+
+    const blob = new Blob([invoiceHtml], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${currentInvoiceData.invoice_number}.html`;
+    document.body.appendChild(link);
+    link.click();
+
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
