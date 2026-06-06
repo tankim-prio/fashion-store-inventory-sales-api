@@ -1,14 +1,45 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environment
 venv/
+env/
+.venv/
+
+# Environment variables
 .env
-__pycache__/
-*.pyc
-.pytest_cache/
-
-# Testing
-.pytest_cache/
-test_fashion_store.db
-__pycache__/
-*.pyc
-
-# Docker local env
+.env.local
 .env.docker
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Database
+*.sqlite3
+*.db
+
+# Media / temporary files
+tmp/
+temp/
+
+# Generated files
+*.pdf
+*.xlsx
+*.csv
